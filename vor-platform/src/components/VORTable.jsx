@@ -19,14 +19,6 @@ const COLUMNS = [
   { key: 'item_type',    label: 'Тип',         width: 110, type: 'select' },
 ]
 
-function typeClass(t) {
-  if (!t) return 'tag-other'
-  if (t === 'Работа') return 'tag-work'
-  if (t === 'Материал') return 'tag-material'
-  if (t === 'Перевозка') return 'tag-transport'
-  return 'tag-other'
-}
-
 function ConfidenceBar({ value }) {
   const color = value >= 70 ? '#5f8a7b' : value >= 40 ? '#f59e0b' : '#e05e28'
   return (
@@ -47,12 +39,10 @@ export default function VORTable({ items, onUpdate }) {
     const updated = items.map((item, i) => {
       if (i !== idx) return item
       const newItem = { ...item, [key]: value }
-      // Recompute qty_value if qty_raw changed
       if (key === 'qty_raw') {
         const n = parseFloat(value.replace(',', '.'))
         newItem.qty_value = isNaN(n) ? null : n
       }
-      // Recompute warnings
       const warnings = []
       if (!newItem.unit) warnings.push('Не определена единица измерения')
       if (newItem.qty_value === null && !newItem.qty_raw) warnings.push('Не определён объём работ')
@@ -84,7 +74,6 @@ export default function VORTable({ items, onUpdate }) {
     onUpdate(arr)
   }
 
-  // Drag reorder
   const onDragStart = (idx) => setDragIdx(idx)
   const onDragOver = (e, idx) => {
     e.preventDefault()
@@ -96,8 +85,7 @@ export default function VORTable({ items, onUpdate }) {
     onUpdate(arr)
   }
 
-  // Filter
-  const filtered = items.filter((item, i) => {
+  const filtered = items.filter((item) => {
     if (filterType && item.item_type !== filterType) return false
     if (showWarningsOnly && (!item.warnings || item.warnings.length === 0)) return false
     if (search) {
@@ -114,7 +102,6 @@ export default function VORTable({ items, onUpdate }) {
 
   return (
     <div className="panel overflow-hidden flex flex-col" style={{ maxHeight: '75vh' }}>
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-ink-800 flex-shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Search size={14} className="text-ink-500 flex-shrink-0" />
@@ -130,7 +117,6 @@ export default function VORTable({ items, onUpdate }) {
             </button>
           )}
         </div>
-
         <div className="flex items-center gap-2">
           <select
             value={filterType}
@@ -140,7 +126,6 @@ export default function VORTable({ items, onUpdate }) {
             <option value="">Все типы</option>
             {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-
           <button
             onClick={() => setShowWarningsOnly(v => !v)}
             className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-colors ${
@@ -151,13 +136,11 @@ export default function VORTable({ items, onUpdate }) {
             Предупреждения
           </button>
         </div>
-
         <button onClick={addRow} className="btn-primary text-xs px-3 py-1.5">
           <Plus size={14} /> Строка
         </button>
       </div>
 
-      {/* Count */}
       <div className="px-4 py-1.5 text-xs text-ink-600 border-b border-ink-800/50 flex-shrink-0">
         {filtered.length !== items.length
           ? `Показано ${filtered.length} из ${items.length} позиций`
@@ -165,7 +148,6 @@ export default function VORTable({ items, onUpdate }) {
         }
       </div>
 
-      {/* Table scroll container */}
       <div className="overflow-auto flex-1" ref={tableRef}>
         <table className="vor-table w-full border-collapse" style={{ minWidth: '1200px' }}>
           <thead>
@@ -180,7 +162,6 @@ export default function VORTable({ items, onUpdate }) {
           </thead>
           <tbody>
             {filtered.map((item, visIdx) => {
-              // Find real index in items array
               const realIdx = items.indexOf(item)
               return (
                 <TableRow
@@ -198,7 +179,6 @@ export default function VORTable({ items, onUpdate }) {
             })}
           </tbody>
         </table>
-
         {filtered.length === 0 && (
           <div className="py-12 text-center text-ink-500 text-sm">
             <Filter size={20} className="mx-auto mb-2 opacity-40" />
@@ -221,15 +201,12 @@ function TableRow({ item, realIdx, visIdx, updateCell, removeRow, moveRow, onDra
       onDragOver={e => onDragOver(e, realIdx)}
       className={hasWarnings ? 'bg-amber-500/5' : ''}
     >
-      {/* Row number */}
       <td className="text-center">
         <div className="flex items-center justify-center gap-0.5">
           <GripVertical size={12} className="text-ink-700 cursor-grab" />
           <span className="text-ink-600 text-xs font-mono">{visIdx + 1}</span>
         </div>
       </td>
-
-      {/* Data cells */}
       {COLUMNS.map(col => (
         <td key={col.key} className={editing === col.key ? 'bg-ink-800/60' : ''}>
           {col.type === 'select' ? (
@@ -261,16 +238,12 @@ function TableRow({ item, realIdx, visIdx, updateCell, removeRow, moveRow, onDra
           )}
         </td>
       ))}
-
-      {/* Confidence */}
       <td className="text-center">
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs font-mono text-ink-500">{item.confidence ?? 0}%</span>
           <ConfidenceBar value={item.confidence ?? 0} />
         </div>
       </td>
-
-      {/* Actions */}
       <td>
         <div className="flex items-center gap-1 justify-center">
           {hasWarnings && (
@@ -293,14 +266,5 @@ function TableRow({ item, realIdx, visIdx, updateCell, removeRow, moveRow, onDra
         </div>
       </td>
     </tr>
-  )
-}
-
-function ConfidenceBar({ value }) {
-  const color = value >= 70 ? '#5f8a7b' : value >= 40 ? '#f59e0b' : '#e05e28'
-  return (
-    <div className="confidence-bar w-12">
-      <div style={{ width: `${value}%`, background: color, height: '4px', borderRadius: '2px' }} />
-    </div>
   )
 }
